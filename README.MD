@@ -1,3 +1,6 @@
+# ETL pipeline
+
+A ETL piepeline to merge different datasets and make a master table along with an interactive dashboard to browse through it.
 
 Commands to run the pipeline without docker
 ```
@@ -9,7 +12,7 @@ python app.py
 
 ```
 
-Commands to run the pipeline without docker
+Commands to run the pipeline with docker
 ```
 docker compose up --build  
 
