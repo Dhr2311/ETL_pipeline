@@ -1,0 +1,70 @@
+# version: "3.9"
+
+services:
+  db:
+    image: postgres:16
+    container_name: etl_db_pg
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: etl_user
+      POSTGRES_PASSWORD: change_me
+      POSTGRES_DB: hospitaldb
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PGUSER} -d ${PGDATABASE}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  pgadmin:
+    image: dpage/pgadmin4:8
+    container_name: etl_pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
+    ports:
+      - "5050:80"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  etl:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: etl_job
+    environment:
+      DATABASE_URL: postgresql+psycopg://${PGAPP_USER}:${PGAPP_PASSWORD}@db:5432/${PGDATABASE}
+      EXCEL_PATH: /app/data/output.xlsx
+    command: ["python", "etl_from_excel.py"]
+    volumes:
+      - ./data:/app/data:ro
+      - ./.env:/app/.env:ro
+    depends_on:
+      db:
+        condition: service_healthy
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: etl_dash
+    environment:
+      DATABASE_URL: postgresql+psycopg://${PGAPP_USER}:${PGAPP_PASSWORD}@db:5432/${PGDATABASE}
+    command: ["gunicorn", "app:server", "-b", "0.0.0.0:8050", "--timeout", "120"]
+    ports:
+      - "8050:8050"
+    volumes:
+      - ./.env:/app/.env:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      etl:
+        condition: service_completed_successfully
+
+volumes:
+  pg_data:

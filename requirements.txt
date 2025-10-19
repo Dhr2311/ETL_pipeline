@@ -1,0 +1,11 @@
+pandas
+numpy
+SQLAlchemy>=2.0
+psycopg[binary]
+python-dotenv
+scikit-learn
+dash
+dash-bootstrap-components
+plotly
+openpyxl
+gunicorn
